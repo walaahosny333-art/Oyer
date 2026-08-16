@@ -12,6 +12,10 @@ main{max-width:700px;margin:auto;padding:16px}.card{background:#fff;border-radiu
 button{border:0;border-radius:14px;padding:14px 12px;font-size:16px;font-weight:700;cursor:pointer;margin:4px}
 .primary{background:#6750A4;color:white;width:100%}.voices{display:flex;gap:6px}.voices button{flex:1;background:#eee}
 textarea{width:100%;min-height:230px;border:1px solid #ccc;border-radius:14px;padding:14px;font-size:18px;line-height:1.7;resize:vertical}
+#wordText{border:1px solid #ccc;border-radius:14px;padding:14px;min-height:120px;font-size:21px;line-height:2.1;direction:ltr;text-align:left;background:#fafafa}
+.word{display:inline-block;padding:1px 4px;margin:1px;border-radius:6px;cursor:pointer;transition:.15s}
+.word:hover,.word:active{background:#e9ddff}
+.word.active{background:#6750A4;color:#fff}
 #preview{width:100%;max-height:280px;object-fit:contain;border-radius:12px;display:none;background:#eee}
 label{display:block;margin:10px 0 5px;font-weight:700}.status{text-align:center;padding:8px;color:#555}
 .small{font-size:13px;color:#666;line-height:1.5}
@@ -30,6 +34,8 @@ label{display:block;margin:10px 0 5px;font-weight:700}.status{text-align:center;
 <div class="card">
   <label>النص</label>
   <textarea id="text" placeholder="النص المستخرج سيظهر هنا..."></textarea>
+  <div class="small" style="margin-top:8px">👆 اضغط على أي كلمة لسماع نطقها — وعلى الكمبيوتر مرّر المؤشر فوق الكلمة.</div>
+  <div id="wordText" aria-label="النص التفاعلي"></div>
   <div class="voices">
     <button id="us">🇺🇸 American</button>
     <button id="uk">🇬🇧 British</button>
@@ -75,7 +81,7 @@ $("file").onchange=async e=>{
  try{
    const worker=await getOCRWorker();
    const r=await worker.recognize(f);
-   $("text").value=(r.data.text||"").trim();
+   $("text").value=(r.data.text||"").trim(); renderInteractiveText();
    $("status").textContent=$("text").value ? "تم استخراج النص بنجاح" : "لم يتم العثور على نص واضح";
  }catch(err){
    console.error(err);
@@ -84,6 +90,52 @@ $("file").onchange=async e=>{
 };
 $("us").onclick=()=>speak("en-US");
 $("uk").onclick=()=>speak("en-GB");
+
+let wordSpeakTimer=null;
+function renderInteractiveText(){
+  const box=$("wordText");
+  const text=$("text").value.trim();
+  box.innerHTML="";
+  if(!text){
+    box.innerHTML='<span style="color:#888">سيظهر النص التفاعلي هنا...</span>';
+    return;
+  }
+  const parts=text.split(/(\s+)/);
+  for(const part of parts){
+    if(/^\s+$/.test(part)){
+      box.appendChild(document.createTextNode(part));
+      continue;
+    }
+    const clean=part.replace(/^[^\w\u00C0-\u024F\u1E00-\u1EFF']+|[^\w\u00C0-\u024F\u1E00-\u1EFF']+$/g,"");
+    const span=document.createElement("span");
+    span.className="word";
+    span.textContent=part;
+    if(clean){
+      span.title="اضغط للنطق";
+      const speakWord=()=>{
+        clearTimeout(wordSpeakTimer);
+        speechSynthesis.cancel();
+        const u=new SpeechSynthesisUtterance(clean);
+        u.lang=selectedLang;
+        u.rate=parseFloat($("rate").value);
+        span.classList.add("active");
+        u.onend=u.onerror=()=>span.classList.remove("active");
+        speechSynthesis.speak(u);
+      };
+      span.addEventListener("click",speakWord);
+      span.addEventListener("mouseenter",()=>{
+        if(window.matchMedia("(hover:hover)").matches){
+          wordSpeakTimer=setTimeout(speakWord,180);
+        }
+      });
+      span.addEventListener("mouseleave",()=>clearTimeout(wordSpeakTimer));
+    }
+    box.appendChild(span);
+  }
+}
+$("text").addEventListener("input",renderInteractiveText);
+renderInteractiveText();
+
 function speak(lang){
  selectedLang=lang; const t=$("text").value.trim();
  if(!t){$("status").textContent="اكتب أو استخرج نصًا أولًا";return}
