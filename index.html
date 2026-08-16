@@ -6,24 +6,76 @@
 <meta name="theme-color" content="#6750A4">
 <title>Text Fairy Voice</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f3fa;color:#202124}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f5f3fa;color:#202124}
 header{background:#6750A4;color:#fff;padding:18px;text-align:center;font-size:24px;font-weight:700}
-main{max-width:700px;margin:auto;padding:16px}.card{background:#fff;border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 3px 12px #0001}
+main{max-width:700px;margin:auto;padding:16px}
+.card{background:#fff;border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 3px 12px #0001}
 button{border:0;border-radius:14px;padding:14px 12px;font-size:16px;font-weight:700;cursor:pointer;margin:4px}
-.primary{background:#6750A4;color:white;width:100%}.voices{display:flex;gap:6px}.voices button{flex:1;background:#eee}
-textarea{width:100%;min-height:120px;border:1px solid #ccc;border-radius:14px;padding:14px;font-size:18px;line-height:1.7;resize:vertical}
-#wordText{border:2px solid #6750A4;border-radius:14px;padding:16px;min-height:180px;font-size:22px;line-height:2.2;direction:ltr;text-align:left;background:#fff;touch-action:manipulation;-webkit-user-select:text;user-select:text}
-.word{display:inline-block;padding:2px 6px;margin:1px;border:0;background:transparent;border-radius:6px;cursor:pointer;transition:.15s;font:inherit;color:inherit;line-height:1.7;touch-action:manipulation;-webkit-tap-highlight-color:rgba(103,80,164,.25)}
+.primary{background:#6750A4;color:white;width:100%}
+.voices{display:flex;gap:6px}
+.voices button{flex:1;background:#eee}
+
+textarea{
+  display:none;
+}
+
+#wordText{
+  border:2px solid #6750A4;
+  border-radius:14px;
+  padding:16px;
+  min-height:180px;
+  font-size:22px;
+  line-height:2.2;
+  direction:ltr;
+  text-align:left;
+  background:#fff;
+  touch-action:manipulation;
+  -webkit-user-select:none;
+  user-select:none;
+}
+
+.word{
+  display:inline-block;
+  padding:2px 6px;
+  margin:1px;
+  border:0;
+  background:transparent;
+  border-radius:6px;
+  cursor:pointer;
+  transition:.15s;
+  font:inherit;
+  color:inherit;
+  line-height:1.7;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:rgba(103,80,164,.25);
+  -webkit-user-select:none;
+  user-select:none;
+}
+
 .word:hover,.word:active{background:#e9ddff}
 .word.active{background:#6750A4;color:#fff}
-#preview{width:100%;max-height:280px;object-fit:contain;border-radius:12px;display:none;background:#eee}
-label{display:block;margin:10px 0 5px;font-weight:700}.status{text-align:center;padding:8px;color:#555}
+
+#preview{
+  width:100%;
+  max-height:280px;
+  object-fit:contain;
+  border-radius:12px;
+  display:none;
+  background:#eee
+}
+
+label{display:block;margin:10px 0 5px;font-weight:700}
+.status{text-align:center;padding:8px;color:#555}
 .small{font-size:13px;color:#666;line-height:1.5}
 </style>
 </head>
+
 <body>
 <header>📖 Text Fairy Voice</header>
+
 <main>
+
 <div class="card">
   <button class="primary" id="pick">🖼️ اختيار صورة من الهاتف</button>
   <input id="file" type="file" accept="image/*" hidden>
@@ -32,16 +84,23 @@ label{display:block;margin:10px 0 5px;font-weight:700}.status{text-align:center;
 </div>
 
 <div class="card">
-  <label>النص</label>
+  <label>النص المستخرج — اضغط على أي كلمة لنطقها</label>
+
+  <!-- مخزن النص داخليًا، لا يظهر للمستخدم -->
   <textarea id="text" placeholder="النص المستخرج سيظهر هنا..." readonly></textarea>
-  <div class="small" style="margin-top:8px;font-weight:700">🔊 اضغط على الكلمة داخل المربع البنفسجي لسماع نطقها.</div>
-  <div id="wordText" aria-label="اضغط على أي كلمة لسماع نطقها"></div>
+
+  <div id="wordText" aria-label="اضغط على أي كلمة لسماع نطقها">
+    <span style="color:#888">سيظهر النص هنا... اضغط على أي كلمة لسماع نطقها 🔊</span>
+  </div>
+
   <div class="voices">
     <button id="us">🇺🇸 American</button>
     <button id="uk">🇬🇧 British</button>
   </div>
+
   <label>سرعة النطق</label>
   <input id="rate" type="range" min=".5" max="1.5" step=".05" value="1" style="width:100%">
+
   <button id="copy" class="primary">📋 نسخ النص</button>
 </div>
 
@@ -49,17 +108,26 @@ label{display:block;margin:10px 0 5px;font-weight:700}.status{text-align:center;
 <b>ملاحظة:</b> النطق يستخدم محرك النطق الموجود في الجهاز. إذا لم يكن الصوت الأمريكي أو البريطاني مثبتًا، افتح إعدادات تحويل النص إلى كلام في الهاتف وثبّت الصوت المطلوب.<br>
 <b>OCR:</b> عند أول استخدام يحتاج محرك OCR إلى تنزيل ملفاته. بعد اكتمال أول عملية OCR تُحفظ بيانات اللغة في الجهاز ويمكن استخدام التطبيق لاحقًا دون إنترنت قدر الإمكان.
 </div>
+
 </main>
 
 <script>
-const $=id=>document.getElementById(id);
-let selectedLang="en-US";
-$("pick").onclick=()=>$("file").click();
-let ocrWorker=null;
+const $ = id => document.getElementById(id);
+
+let selectedLang = "en-US";
+let ocrWorker = null;
+
+$("pick").onclick = () => $("file").click();
+
 async function getOCRWorker(){
   if(ocrWorker) return ocrWorker;
-  if(!window.Tesseract) throw new Error("Tesseract.js unavailable");
-  $("status").textContent="تهيئة محرك OCR...";
+
+  if(!window.Tesseract){
+    throw new Error("Tesseract.js unavailable");
+  }
+
+  $("status").textContent = "تهيئة محرك OCR...";
+
   ocrWorker = await Tesseract.createWorker("eng", 1, {
     workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
     langPath:"https://tessdata.projectnaptha.com/4.0.0",
@@ -67,120 +135,226 @@ async function getOCRWorker(){
     cacheMethod:"write",
     logger:m=>{
       if(m.status){
-        const pct = Math.round((m.progress||0)*100);
-        $("status").textContent = "OCR: " + m.status + (pct ? " " + pct + "%" : "");
+        const pct = Math.round((m.progress || 0) * 100);
+        $("status").textContent =
+          "OCR: " + m.status + (pct ? " " + pct + "%" : "");
       }
     }
   });
+
   return ocrWorker;
 }
-$("file").onchange=async e=>{
- const f=e.target.files[0]; if(!f)return;
- $("preview").src=URL.createObjectURL(f); $("preview").style.display="block";
- $("status").textContent="جاري استخراج النص...";
- try{
-   const worker=await getOCRWorker();
-   const r=await worker.recognize(f);
-   $("text").value=(r.data.text||"").trim(); renderInteractiveText();
-   $("status").textContent=$("text").value ? "تم استخراج النص بنجاح" : "لم يتم العثور على نص واضح";
- }catch(err){
-   console.error(err);
-   $("status").textContent="تعذر تشغيل OCR. جرّب الاتصال بالإنترنت في أول استخدام ثم أعد المحاولة.";
- }
+
+$("file").onchange = async e => {
+  const f = e.target.files[0];
+  if(!f) return;
+
+  $("preview").src = URL.createObjectURL(f);
+  $("preview").style.display = "block";
+  $("status").textContent = "جاري استخراج النص...";
+
+  try{
+    const worker = await getOCRWorker();
+    const r = await worker.recognize(f);
+
+    $("text").value = (r.data.text || "").trim();
+    renderInteractiveText();
+
+    $("status").textContent =
+      $("text").value
+        ? "تم استخراج النص بنجاح"
+        : "لم يتم العثور على نص واضح";
+
+  }catch(err){
+    console.error(err);
+    $("status").textContent =
+      "تعذر تشغيل OCR. جرّب الاتصال بالإنترنت في أول استخدام ثم أعد المحاولة.";
+  }
 };
-$("us").onclick=()=>{selectedLang="en-US"; updateVoiceButtons(); speak("en-US");};
-$("uk").onclick=()=>{selectedLang="en-GB"; updateVoiceButtons(); speak("en-GB");};
+
+$("us").onclick = () => {
+  selectedLang = "en-US";
+  updateVoiceButtons();
+  speak("en-US");
+};
+
+$("uk").onclick = () => {
+  selectedLang = "en-GB";
+  updateVoiceButtons();
+  speak("en-GB");
+};
+
 function updateVoiceButtons(){
-  $("us").style.background=selectedLang==="en-US"?"#6750A4":"#eee";
-  $("us").style.color=selectedLang==="en-US"?"#fff":"#111";
-  $("uk").style.background=selectedLang==="en-GB"?"#6750A4":"#eee";
-  $("uk").style.color=selectedLang==="en-GB"?"#fff":"#111";
+  $("us").style.background =
+    selectedLang === "en-US" ? "#6750A4" : "#eee";
+  $("us").style.color =
+    selectedLang === "en-US" ? "#fff" : "#111";
+
+  $("uk").style.background =
+    selectedLang === "en-GB" ? "#6750A4" : "#eee";
+  $("uk").style.color =
+    selectedLang === "en-GB" ? "#fff" : "#111";
 }
 
-let wordSpeakTimer=null;
 function cleanWord(s){
-  return s.replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, "");
+  return s.replace(
+    /^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu,
+    ""
+  );
 }
+
+/*
+  النطق يتم مباشرة من pointerdown.
+  هذا مهم جدًا في Android/Chrome لأن المتصفح قد يمنع
+  speechSynthesis إذا تم تأجيله بواسطة setTimeout.
+*/
 function speakWord(word, span){
-  const clean=cleanWord(word);
+  const clean = cleanWord(word);
   if(!clean) return;
-  if(!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)){
-    alert('النطق غير مدعوم في هذا المتصفح. افتح التطبيق في Google Chrome أو حدّث Chrome.');
+
+  if(
+    !("speechSynthesis" in window) ||
+    !("SpeechSynthesisUtterance" in window)
+  ){
+    alert("النطق غير مدعوم في هذا المتصفح. افتح التطبيق في Google Chrome.");
     return;
   }
-  window.speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(clean);
-  u.lang=selectedLang;
-  u.rate=parseFloat($("rate").value) || 1;
-  u.volume=1;
-  u.pitch=1;
-  span.classList.add('active');
-  u.onend=()=>span.classList.remove('active');
-  u.onerror=()=>span.classList.remove('active');
-  // Give Android a moment after cancel() before speaking.
-  setTimeout(()=>window.speechSynthesis.speak(u),80);
+
+  speechSynthesis.cancel();
+
+  document.querySelectorAll(".word.active")
+    .forEach(el => el.classList.remove("active"));
+
+  span.classList.add("active");
+
+  const u = new SpeechSynthesisUtterance(clean);
+
+  u.lang = selectedLang;
+  u.rate = parseFloat($("rate").value) || 1;
+  u.volume = 1;
+  u.pitch = 1;
+
+  u.onend = () => span.classList.remove("active");
+  u.onerror = () => span.classList.remove("active");
+
+  // مهم: التشغيل مباشرة بعد لمسة المستخدم
+  speechSynthesis.speak(u);
 }
+
 function renderInteractiveText(){
-  const box=$("wordText");
-  const text=$("text").value.trim();
-  box.innerHTML="";
+  const box = $("wordText");
+  const text = $("text").value.trim();
+
+  box.innerHTML = "";
+
   if(!text){
-    box.innerHTML='<span style="color:#888">سيظهر النص هنا... اضغط على أي كلمة لسماعها 🔊</span>';
+    box.innerHTML =
+      '<span style="color:#888">سيظهر النص هنا... اضغط على أي كلمة لسماع نطقها 🔊</span>';
     return;
   }
-  // Split into words while preserving spaces and punctuation.
-  const parts=text.split(/(\s+)/);
+
+  const parts = text.split(/(\s+)/);
+
   for(const part of parts){
+
     if(/^\s+$/.test(part)){
       box.appendChild(document.createTextNode(part));
       continue;
     }
-    const clean=cleanWord(part);
-    if(!clean){ box.appendChild(document.createTextNode(part)); continue; }
-    const span=document.createElement("button");
-    span.type="button";
-    span.className="word";
-    span.textContent=part;
-    span.setAttribute('aria-label','نطق '+clean);
-    span.addEventListener('click',()=>speakWord(clean,span),{passive:true});
-    // Desktop hover only.
-    span.addEventListener('mouseenter',()=>{
-      if(window.matchMedia && window.matchMedia('(hover:hover)').matches){
-        clearTimeout(wordSpeakTimer);
-        wordSpeakTimer=setTimeout(()=>speakWord(clean,span),300);
-      }
+
+    const clean = cleanWord(part);
+
+    if(!clean){
+      box.appendChild(document.createTextNode(part));
+      continue;
+    }
+
+    const span = document.createElement("button");
+
+    span.type = "button";
+    span.className = "word";
+    span.textContent = part;
+    span.setAttribute("aria-label", "نطق " + clean);
+
+    // اللمس على الهاتف
+    span.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      speakWord(clean, span);
     });
-    span.addEventListener('mouseleave',()=>clearTimeout(wordSpeakTimer));
+
     box.appendChild(span);
   }
 }
-$("text").addEventListener("input",renderInteractiveText);
+
+$("text").addEventListener("input", renderInteractiveText);
+
 renderInteractiveText();
 updateVoiceButtons();
 
-// Android Chrome sometimes loads voices asynchronously.
-if("speechSynthesis" in window && speechSynthesis.onvoiceschanged !== undefined){ speechSynthesis.onvoiceschanged=()=>{}; }
+if(
+  "speechSynthesis" in window &&
+  speechSynthesis.onvoiceschanged !== undefined
+){
+  speechSynthesis.onvoiceschanged = () => {};
+}
 
 function speak(lang){
- selectedLang=lang; const t=$("text").value.trim();
- if(!t){$("status").textContent="اكتب أو استخرج نصًا أولًا";return}
- speechSynthesis.cancel();
- const u=new SpeechSynthesisUtterance(t); u.lang=lang; u.rate=parseFloat($("rate").value);
- setTimeout(()=>speechSynthesis.speak(u),80);
- $("status").textContent=lang==="en-US"?"النطق الأمريكي":"النطق البريطاني";
+  selectedLang = lang;
+
+  const t = $("text").value.trim();
+
+  if(!t){
+    $("status").textContent = "استخرج نصًا أولًا";
+    return;
+  }
+
+  if(!("speechSynthesis" in window)){
+    $("status").textContent = "النطق غير مدعوم في هذا المتصفح";
+    return;
+  }
+
+  speechSynthesis.cancel();
+
+  const u = new SpeechSynthesisUtterance(t);
+  u.lang = lang;
+  u.rate = parseFloat($("rate").value) || 1;
+
+  speechSynthesis.speak(u);
+
+  $("status").textContent =
+    lang === "en-US"
+      ? "النطق الأمريكي"
+      : "النطق البريطاني";
 }
-$("copy").onclick=async()=>{
- try{await navigator.clipboard.writeText($("text").value);$("status").textContent="تم نسخ النص"}
- catch{$("text").select();document.execCommand("copy");$("status").textContent="تم نسخ النص"}
+
+$("copy").onclick = async () => {
+  const text = $("text").value;
+
+  try{
+    await navigator.clipboard.writeText(text);
+    $("status").textContent = "تم نسخ النص";
+  }catch{
+    $("text").style.display = "block";
+    $("text").select();
+    document.execCommand("copy");
+    $("text").style.display = "none";
+    $("status").textContent = "تم نسخ النص";
+  }
 };
 </script>
-<!-- Tesseract.js must be bundled locally for true offline OCR.
-     The APK/Web version should replace this placeholder with a local copy. -->
+
+<!-- Tesseract.js -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+
 <script>
 if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("sw.js")
+      .catch(err => console.log("Service Worker:", err));
+  });
 }
 </script>
+
 </body>
 </html>
