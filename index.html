@@ -40,7 +40,8 @@ label{display:block;margin:10px 0 5px;font-weight:700}.status{text-align:center;
 </div>
 
 <div class="card small">
-<b>ملاحظة:</b> النطق يستخدم محرك النطق الموجود في الجهاز. إذا لم يكن الصوت الأمريكي أو البريطاني مثبتًا، افتح إعدادات تحويل النص إلى كلام في الهاتف وثبّت الصوت المطلوب.
+<b>ملاحظة:</b> النطق يستخدم محرك النطق الموجود في الجهاز. إذا لم يكن الصوت الأمريكي أو البريطاني مثبتًا، افتح إعدادات تحويل النص إلى كلام في الهاتف وثبّت الصوت المطلوب.<br>
+<b>OCR:</b> عند أول استخدام يحتاج محرك OCR إلى تنزيل ملفاته. بعد اكتمال أول عملية OCR تُحفظ بيانات اللغة في الجهاز ويمكن استخدام التطبيق لاحقًا دون إنترنت قدر الإمكان.
 </div>
 </main>
 
@@ -48,19 +49,37 @@ label{display:block;margin:10px 0 5px;font-weight:700}.status{text-align:center;
 const $=id=>document.getElementById(id);
 let selectedLang="en-US";
 $("pick").onclick=()=>$("file").click();
+let ocrWorker=null;
+async function getOCRWorker(){
+  if(ocrWorker) return ocrWorker;
+  if(!window.Tesseract) throw new Error("Tesseract.js unavailable");
+  $("status").textContent="تهيئة محرك OCR...";
+  ocrWorker = await Tesseract.createWorker("eng", 1, {
+    workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
+    langPath:"https://tessdata.projectnaptha.com/4.0.0",
+    corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1",
+    cacheMethod:"write",
+    logger:m=>{
+      if(m.status){
+        const pct = Math.round((m.progress||0)*100);
+        $("status").textContent = "OCR: " + m.status + (pct ? " " + pct + "%" : "");
+      }
+    }
+  });
+  return ocrWorker;
+}
 $("file").onchange=async e=>{
  const f=e.target.files[0]; if(!f)return;
  $("preview").src=URL.createObjectURL(f); $("preview").style.display="block";
  $("status").textContent="جاري استخراج النص...";
  try{
-   if(!window.Tesseract){throw new Error("OCR library unavailable")}
-   const r=await Tesseract.recognize(f,"eng",{logger:m=>{
-     if(m.status) $("status").textContent="OCR: "+m.status+" "+Math.round((m.progress||0)*100)+"%";
-   }});
-   $("text").value=r.data.text;
-   $("status").textContent="تم استخراج النص";
+   const worker=await getOCRWorker();
+   const r=await worker.recognize(f);
+   $("text").value=(r.data.text||"").trim();
+   $("status").textContent=$("text").value ? "تم استخراج النص بنجاح" : "لم يتم العثور على نص واضح";
  }catch(err){
-   $("status").textContent="تعذر تشغيل OCR. استخدم نسخة التطبيق بعد تضمين محرك OCR محلي.";
+   console.error(err);
+   $("status").textContent="تعذر تشغيل OCR. جرّب الاتصال بالإنترنت في أول استخدام ثم أعد المحاولة.";
  }
 };
 $("us").onclick=()=>speak("en-US");
@@ -80,6 +99,11 @@ $("copy").onclick=async()=>{
 </script>
 <!-- Tesseract.js must be bundled locally for true offline OCR.
      The APK/Web version should replace this placeholder with a local copy. -->
-<script src="tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script>
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
 </body>
 </html>
