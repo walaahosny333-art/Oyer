@@ -1,6 +1,13 @@
-const CACHE="tfv-shell-v2";
-const APP=["./","./index.html","./manifest.webmanifest","./sw.js"];
-const OCR=[
+const CACHE = "tfv-shell-v3";
+
+const APP = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./sw.js"
+];
+
+const OCR = [
   "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js",
   "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
   "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core.wasm.js",
@@ -9,21 +16,67 @@ const OCR=[
   "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core-simd-lstm.wasm.js",
   "https://tessdata.projectnaptha.com/4.0.0/eng.traineddata.gz"
 ];
-self.addEventListener("install",e=>{
-  e.waitUntil(caches.open(CACHE).then(async c=>{
-    await c.addAll(APP);
-    // Best effort: cross-origin resources may be opaque or unavailable; Tesseract also caches language data in IndexedDB.
-    await Promise.allSettled(OCR.map(u=>fetch(u,{mode:"cors"}).then(r=>{if(r.ok)return c.put(u,r.clone())})));
-    self.skipWaiting();
-  }));
+
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(CACHE).then(async cache => {
+      await cache.addAll(APP);
+
+      await Promise.allSettled(
+        OCR.map(url =>
+          fetch(url, { mode: "cors" })
+            .then(response => {
+              if (response.ok) {
+                return cache.put(url, response.clone());
+              }
+            })
+            .catch(() => {})
+        )
+      );
+
+      await self.skipWaiting();
+    })
+  );
 });
-self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));
-self.addEventListener("fetch",e=>{
-  const u=e.request.url;
-  if(u.startsWith(self.location.origin) || OCR.includes(u)){
-    e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{
-      if(r.ok){const cp=r.clone();caches.open(CACHE).then(x=>x.put(e.request,cp));}
-      return r;
-    })));
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys =>
+        Promise.all(
+          keys
+            .filter(key => key !== CACHE)
+            .map(key => caches.delete(key))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("fetch", event => {
+  const request = event.request;
+
+  if (request.method !== "GET") return;
+
+  const url = request.url;
+
+  if (url.startsWith(self.location.origin) || OCR.includes(url)) {
+    event.respondWith(
+      caches.match(request).then(cached => {
+        if (cached) return cached;
+
+        return fetch(request).then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+
+            caches.open(CACHE).then(cache => {
+              cache.put(request, copy);
+            });
+          }
+
+          return response;
+        });
+      })
+    );
   }
 });
