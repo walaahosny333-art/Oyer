@@ -11,9 +11,9 @@ header{background:#6750A4;color:#fff;padding:18px;text-align:center;font-size:24
 main{max-width:700px;margin:auto;padding:16px}.card{background:#fff;border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 3px 12px #0001}
 button{border:0;border-radius:14px;padding:14px 12px;font-size:16px;font-weight:700;cursor:pointer;margin:4px}
 .primary{background:#6750A4;color:white;width:100%}.voices{display:flex;gap:6px}.voices button{flex:1;background:#eee}
-textarea{width:100%;min-height:230px;border:1px solid #ccc;border-radius:14px;padding:14px;font-size:18px;line-height:1.7;resize:vertical}
-#wordText{border:1px solid #ccc;border-radius:14px;padding:14px;min-height:120px;font-size:21px;line-height:2.1;direction:ltr;text-align:left;background:#fafafa}
-.word{display:inline-block;padding:1px 4px;margin:1px;border-radius:6px;cursor:pointer;transition:.15s}
+textarea{width:100%;min-height:120px;border:1px solid #ccc;border-radius:14px;padding:14px;font-size:18px;line-height:1.7;resize:vertical}
+#wordText{border:2px solid #6750A4;border-radius:14px;padding:16px;min-height:180px;font-size:22px;line-height:2.2;direction:ltr;text-align:left;background:#fff;touch-action:manipulation;-webkit-user-select:text;user-select:text}
+.word{display:inline-block;padding:2px 6px;margin:1px;border:0;background:transparent;border-radius:6px;cursor:pointer;transition:.15s;font:inherit;color:inherit;line-height:1.7;touch-action:manipulation;-webkit-tap-highlight-color:rgba(103,80,164,.25)}
 .word:hover,.word:active{background:#e9ddff}
 .word.active{background:#6750A4;color:#fff}
 #preview{width:100%;max-height:280px;object-fit:contain;border-radius:12px;display:none;background:#eee}
@@ -33,9 +33,9 @@ label{display:block;margin:10px 0 5px;font-weight:700}.status{text-align:center;
 
 <div class="card">
   <label>النص</label>
-  <textarea id="text" placeholder="النص المستخرج سيظهر هنا..."></textarea>
-  <div class="small" style="margin-top:8px">👆 اضغط على أي كلمة لسماع نطقها — وعلى الكمبيوتر مرّر المؤشر فوق الكلمة.</div>
-  <div id="wordText" aria-label="النص التفاعلي"></div>
+  <textarea id="text" placeholder="النص المستخرج سيظهر هنا..." readonly></textarea>
+  <div class="small" style="margin-top:8px;font-weight:700">🔊 اضغط على الكلمة داخل المربع البنفسجي لسماع نطقها.</div>
+  <div id="wordText" aria-label="اضغط على أي كلمة لسماع نطقها"></div>
   <div class="voices">
     <button id="us">🇺🇸 American</button>
     <button id="uk">🇬🇧 British</button>
@@ -88,60 +88,85 @@ $("file").onchange=async e=>{
    $("status").textContent="تعذر تشغيل OCR. جرّب الاتصال بالإنترنت في أول استخدام ثم أعد المحاولة.";
  }
 };
-$("us").onclick=()=>speak("en-US");
-$("uk").onclick=()=>speak("en-GB");
+$("us").onclick=()=>{selectedLang="en-US"; updateVoiceButtons(); speak("en-US");};
+$("uk").onclick=()=>{selectedLang="en-GB"; updateVoiceButtons(); speak("en-GB");};
+function updateVoiceButtons(){
+  $("us").style.background=selectedLang==="en-US"?"#6750A4":"#eee";
+  $("us").style.color=selectedLang==="en-US"?"#fff":"#111";
+  $("uk").style.background=selectedLang==="en-GB"?"#6750A4":"#eee";
+  $("uk").style.color=selectedLang==="en-GB"?"#fff":"#111";
+}
 
 let wordSpeakTimer=null;
+function cleanWord(s){
+  return s.replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, "");
+}
+function speakWord(word, span){
+  const clean=cleanWord(word);
+  if(!clean) return;
+  if(!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)){
+    alert('النطق غير مدعوم في هذا المتصفح. افتح التطبيق في Google Chrome أو حدّث Chrome.');
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(clean);
+  u.lang=selectedLang;
+  u.rate=parseFloat($("rate").value) || 1;
+  u.volume=1;
+  u.pitch=1;
+  span.classList.add('active');
+  u.onend=()=>span.classList.remove('active');
+  u.onerror=()=>span.classList.remove('active');
+  // Give Android a moment after cancel() before speaking.
+  setTimeout(()=>window.speechSynthesis.speak(u),80);
+}
 function renderInteractiveText(){
   const box=$("wordText");
   const text=$("text").value.trim();
   box.innerHTML="";
   if(!text){
-    box.innerHTML='<span style="color:#888">سيظهر النص التفاعلي هنا...</span>';
+    box.innerHTML='<span style="color:#888">سيظهر النص هنا... اضغط على أي كلمة لسماعها 🔊</span>';
     return;
   }
+  // Split into words while preserving spaces and punctuation.
   const parts=text.split(/(\s+)/);
   for(const part of parts){
     if(/^\s+$/.test(part)){
       box.appendChild(document.createTextNode(part));
       continue;
     }
-    const clean=part.replace(/^[^\w\u00C0-\u024F\u1E00-\u1EFF']+|[^\w\u00C0-\u024F\u1E00-\u1EFF']+$/g,"");
-    const span=document.createElement("span");
+    const clean=cleanWord(part);
+    if(!clean){ box.appendChild(document.createTextNode(part)); continue; }
+    const span=document.createElement("button");
+    span.type="button";
     span.className="word";
     span.textContent=part;
-    if(clean){
-      span.title="اضغط للنطق";
-      const speakWord=()=>{
+    span.setAttribute('aria-label','نطق '+clean);
+    span.addEventListener('click',()=>speakWord(clean,span),{passive:true});
+    // Desktop hover only.
+    span.addEventListener('mouseenter',()=>{
+      if(window.matchMedia && window.matchMedia('(hover:hover)').matches){
         clearTimeout(wordSpeakTimer);
-        speechSynthesis.cancel();
-        const u=new SpeechSynthesisUtterance(clean);
-        u.lang=selectedLang;
-        u.rate=parseFloat($("rate").value);
-        span.classList.add("active");
-        u.onend=u.onerror=()=>span.classList.remove("active");
-        speechSynthesis.speak(u);
-      };
-      span.addEventListener("click",speakWord);
-      span.addEventListener("mouseenter",()=>{
-        if(window.matchMedia("(hover:hover)").matches){
-          wordSpeakTimer=setTimeout(speakWord,180);
-        }
-      });
-      span.addEventListener("mouseleave",()=>clearTimeout(wordSpeakTimer));
-    }
+        wordSpeakTimer=setTimeout(()=>speakWord(clean,span),300);
+      }
+    });
+    span.addEventListener('mouseleave',()=>clearTimeout(wordSpeakTimer));
     box.appendChild(span);
   }
 }
 $("text").addEventListener("input",renderInteractiveText);
 renderInteractiveText();
+updateVoiceButtons();
+
+// Android Chrome sometimes loads voices asynchronously.
+if("speechSynthesis" in window && speechSynthesis.onvoiceschanged !== undefined){ speechSynthesis.onvoiceschanged=()=>{}; }
 
 function speak(lang){
  selectedLang=lang; const t=$("text").value.trim();
  if(!t){$("status").textContent="اكتب أو استخرج نصًا أولًا";return}
  speechSynthesis.cancel();
  const u=new SpeechSynthesisUtterance(t); u.lang=lang; u.rate=parseFloat($("rate").value);
- speechSynthesis.speak(u);
+ setTimeout(()=>speechSynthesis.speak(u),80);
  $("status").textContent=lang==="en-US"?"النطق الأمريكي":"النطق البريطاني";
 }
 $("copy").onclick=async()=>{
